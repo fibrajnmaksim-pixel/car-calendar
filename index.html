@@ -1,1 +1,1069 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes" />
+    <title>Календарь состояний</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        body {
+            background: #f1f5f9;
+            padding: 10px;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .container {
+            max-width: 950px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            padding: 16px 18px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #e9edf2;
+            padding-bottom: 12px;
+        }
+        h1 {
+            font-size: 22px;
+            color: #0f172a;
+            margin: 0;
+        }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 48px;
+            touch-action: manipulation;
+        }
+        .btn:hover {
+            background: #0f172a;
+            transform: scale(1.02);
+        }
+        .btn-green {
+            background: #16a34a;
+        }
+        .btn-green:hover {
+            background: #15803d;
+        }
+        .car-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .car-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+        .car-item:hover {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+        }
+        .car-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .car-name {
+            font-weight: 600;
+            font-size: 17px;
+            color: #0f172a;
+        }
+        .car-number {
+            color: #475569;
+            font-size: 14px;
+            background: #e9edf2;
+            padding: 2px 12px;
+            border-radius: 30px;
+        }
+        .status-badge {
+            font-size: 14px;
+            font-weight: 500;
+            padding: 4px 14px;
+            border-radius: 30px;
+            background: #e2e8f0;
+            color: #334155;
+            white-space: nowrap;
+        }
+        .status-badge.ремонт {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        .status-badge.простой {
+            background: #fde68a;
+            color: #92400e;
+        }
+        .status-badge.выходной {
+            background: #bbf7d0;
+            color: #166534;
+        }
+        .empty-msg {
+            text-align: center;
+            color: #94a3b8;
+            padding: 30px 0;
+            font-size: 18px;
+        }
+        .save-hint {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #64748b;
+            text-align: center;
+        }
 
+        /* Модальные окна */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 10px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: white;
+            border-radius: 28px;
+            padding: 20px 18px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 95vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.25s ease;
+        }
+        .modal-report {
+            max-width: 750px;
+        }
+        .modal-add {
+            max-width: 450px;
+        }
+        @keyframes fadeIn {
+            from {
+                transform: scale(0.96);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #0f172a;
+        }
+        .modal-header .close-btn {
+            background: #f1f5f9;
+            border: none;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: #475569;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+        .modal-header .close-btn:hover {
+            background: #e2e8f0;
+        }
+
+        /* Календарь */
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .month-nav button {
+            background: #f1f5f9;
+            border: none;
+            font-size: 20px;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            color: #1e293b;
+            transition: 0.2s;
+            touch-action: manipulation;
+        }
+        .month-nav button:hover {
+            background: #e2e8f0;
+        }
+        .month-nav .month-label {
+            font-weight: 600;
+            font-size: 18px;
+            color: #0f172a;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+        .calendar-grid .day-name {
+            text-align: center;
+            font-weight: 500;
+            font-size: 12px;
+            color: #64748b;
+            padding: 4px 0;
+        }
+        .calendar-grid .day-cell {
+            aspect-ratio: 1/1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #0f172a;
+            cursor: pointer;
+            transition: 0.15s;
+            border: 2px solid transparent;
+            position: relative;
+            min-height: 36px;
+            touch-action: manipulation;
+        }
+        .calendar-grid .day-cell:hover {
+            border-color: #94a3b8;
+            transform: scale(1.02);
+        }
+        .calendar-grid .day-cell.empty {
+            background: transparent;
+            cursor: default;
+            pointer-events: none;
+        }
+        .calendar-grid .day-cell .day-number {
+            line-height: 1;
+        }
+        .calendar-grid .day-cell.status-ремонт {
+            background: #fecaca;
+            border-color: #f87171;
+        }
+        .calendar-grid .day-cell.status-простой {
+            background: #fde68a;
+            border-color: #fbbf24;
+        }
+        .calendar-grid .day-cell.status-выходной {
+            background: #bbf7d0;
+            border-color: #4ade80;
+        }
+        .day-cell .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .day-cell.status-ремонт .status-dot {
+            background: #991b1b;
+        }
+        .day-cell.status-простой .status-dot {
+            background: #92400e;
+        }
+        .day-cell.status-выходной .status-dot {
+            background: #166534;
+        }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 8px 0 16px;
+            font-size: 13px;
+        }
+        .legend span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend .color-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .color-box.ремонт {
+            background: #fecaca;
+            border: 1px solid #f87171;
+        }
+        .color-box.простой {
+            background: #fde68a;
+            border: 1px solid #fbbf24;
+        }
+        .color-box.выходной {
+            background: #bbf7d0;
+            border: 1px solid #4ade80;
+        }
+
+        .day-picker {
+            display: none;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            padding: 16px 18px;
+            margin-top: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .day-picker.active {
+            display: block;
+        }
+        .day-picker .picker-title {
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: #1e293b;
+            font-size: 15px;
+        }
+        .day-picker .picker-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .day-picker .picker-buttons button {
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 30px;
+            background: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            flex: 1;
+            min-width: 70px;
+            font-size: 14px;
+            touch-action: manipulation;
+        }
+        .day-picker .picker-buttons button:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+        .day-picker .picker-buttons button.ремонт {
+            border-color: #f87171;
+            color: #991b1b;
+        }
+        .day-picker .picker-buttons button.простой {
+            border-color: #fbbf24;
+            color: #92400e;
+        }
+        .day-picker .picker-buttons button.выходной {
+            border-color: #4ade80;
+            color: #166534;
+        }
+        .day-picker .picker-buttons button.clear-status {
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+
+        /* Отчёт */
+        .report-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .report-controls label {
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 15px;
+        }
+        .report-controls input[type="month"] {
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 30px;
+            background: white;
+            font-size: 15px;
+            flex: 1;
+            min-width: 140px;
+        }
+        .report-controls button {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            touch-action: manipulation;
+        }
+        .report-controls button:hover {
+            background: #0f172a;
+        }
+        .report-table-wrap {
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .report-table th {
+            background: #f1f5f9;
+            color: #1e293b;
+            font-weight: 600;
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .report-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e9edf2;
+        }
+        .report-table .car-name-cell {
+            font-weight: 500;
+        }
+        .report-table .total-row {
+            background: #f8fafc;
+            font-weight: 600;
+        }
+        .report-table .total-row td {
+            border-top: 2px solid #cbd5e1;
+            padding-top: 10px;
+        }
+        .report-table .num {
+            text-align: center;
+        }
+        .report-table .num.ремонт {
+            color: #991b1b;
+        }
+        .report-table .num.простой {
+            color: #92400e;
+        }
+        .report-table .num.выходной {
+            color: #166534;
+        }
+        .report-empty {
+            color: #94a3b8;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        /* Форма добавления */
+        .add-form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .add-form label {
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 15px;
+        }
+        .add-form input {
+            padding: 12px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 30px;
+            font-size: 16px;
+            width: 100%;
+        }
+        .add-form .row {
+            display: flex;
+            gap: 10px;
+        }
+        .add-form .row>* {
+            flex: 1;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-align: center;
+            max-width: 90%;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* Адаптация для маленьких экранов */
+        @media (max-width:480px) {
+            .container {
+                padding: 12px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            .btn {
+                font-size: 13px;
+                padding: 10px 14px;
+                min-height: 40px;
+            }
+            .car-item {
+                padding: 12px 12px;
+            }
+            .car-name {
+                font-size: 15px;
+            }
+            .calendar-grid {
+                gap: 3px;
+            }
+            .calendar-grid .day-cell {
+                font-size: 12px;
+                min-height: 32px;
+                border-radius: 8px;
+            }
+            .modal {
+                padding: 16px;
+            }
+            .modal-header h3 {
+                font-size: 18px;
+            }
+            .day-picker .picker-buttons button {
+                font-size: 12px;
+                padding: 8px 10px;
+                min-width: 60px;
+            }
+            .report-table {
+                font-size: 12px;
+            }
+            .report-table th,
+            .report-table td {
+                padding: 6px 8px;
+            }
+            .add-form input {
+                font-size: 14px;
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Состояния</h1>
+            <div class="header-actions">
+                <button class="btn btn-green" id="addCarBtn">➕ Добавить</button>
+                <button class="btn" id="openReportBtn">📊 Отчёт</button>
+            </div>
+        </div>
+        <div id="carList" class="car-list"></div>
+        <div class="save-hint">▼ Нажмите на авто → календарь</div>
+    </div>
+
+    <!-- Модалка календаря -->
+    <div class="modal-overlay" id="calendarModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalCarTitle">Автомобиль</h3>
+                <button class="close-btn" id="modalClose">✕</button>
+            </div>
+            <div class="month-nav">
+                <button id="prevMonth">◀</button>
+                <span class="month-label" id="monthLabel">Март 2026</span>
+                <button id="nextMonth">▶</button>
+            </div>
+            <div class="legend">
+                <span><span class="color-box ремонт"></span> Ремонт</span>
+                <span><span class="color-box простой"></span> Простой</span>
+                <span><span class="color-box выходной"></span> Выходной</span>
+                <span><span class="color-box" style="background:#f8fafc;border:1px solid #e2e8f0;"></span> Не задан</span>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="day-picker" id="dayPicker">
+                <div class="picker-title" id="pickerTitle">Выберите статус</div>
+                <div class="picker-buttons">
+                    <button class="ремонт" data-status="ремонт">🔧 Ремонт</button>
+                    <button class="простой" data-status="простой">⏸ Простой</button>
+                    <button class="выходной" data-status="выходной">📅 Выходной</button>
+                    <button class="clear-status" data-status="clear">✖ Снять</button>
+                </div>
+            </div>
+            <div style="text-align:right; margin-top:10px;">
+                <button class="close-btn" style="background:#f1f5f9; border:none; padding:8px 18px; border-radius:30px; cursor:pointer; touch-action:manipulation;" id="modalCloseBottom">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка отчёта -->
+    <div class="modal-overlay" id="reportModal">
+        <div class="modal modal-report">
+            <div class="modal-header">
+                <h3>📊 Ежемесячный отчёт</h3>
+                <button class="close-btn" id="reportClose">✕</button>
+            </div>
+            <div class="report-controls">
+                <label for="reportMonth">Месяц</label>
+                <input type="month" id="reportMonth" />
+                <button id="generateReportBtn">Сформировать</button>
+            </div>
+            <div id="reportResult">
+                <div class="report-empty">Выберите месяц и нажмите «Сформировать».</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка добавления авто -->
+    <div class="modal-overlay" id="addCarModal">
+        <div class="modal modal-add">
+            <div class="modal-header">
+                <h3>➕ Новый автомобиль</h3>
+                <button class="close-btn" id="addCarClose">✕</button>
+            </div>
+            <div class="add-form">
+                <div class="row">
+                    <div style="flex:1;">
+                        <label>Название</label>
+                        <input type="text" id="newCarName" placeholder="Toyota Camry" />
+                    </div>
+                    <div style="flex:1;">
+                        <label>Номер</label>
+                        <input type="text" id="newCarNumber" placeholder="А123ВС" />
+                    </div>
+                </div>
+                <button class="btn" id="saveCarBtn" style="width:100%;">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Данные сохранены</div>
+
+    <script>
+        // ============ КОНФИГУРАЦИЯ ============
+        // ВАША ССЫЛКА НА ВЕБ-ПРИЛОЖЕНИЕ (ПРОВЕРЕНА)
+        const SCRIPT_URL =
+            'https://script.google.com/macros/s/AKfycbzFZqJ17dA7zr05uMPCVpEc5p5J0VMvfFfIYtvJbNtFGxvcI9W_rLEY1pnmsiHWWEyS/exec';
+
+        // ============ МОДЕЛЬ ============
+        let cars = [];
+        let schedule = {};
+
+        // ============ РАБОТА С СЕРВЕРОМ ============
+        async function loadCars() {
+            try {
+                const resp = await fetch(`${SCRIPT_URL}?action=cars`);
+                if (!resp.ok) throw new Error('Ошибка загрузки машин');
+                const data = await resp.json();
+                if (data.error) {
+                    showToast('❌ ' + data.error);
+                    cars = [];
+                } else {
+                    cars = data || [];
+                }
+                renderCars();
+            } catch (e) {
+                console.warn('Не удалось загрузить машины', e);
+                cars = [];
+                renderCars();
+                showToast('❌ Ошибка загрузки машин');
+            }
+        }
+
+        async function saveCars() {
+            try {
+                const resp = await fetch(`${SCRIPT_URL}?action=cars`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'cars', data: cars }),
+                });
+                const result = await resp.json();
+                if (result.error) {
+                    showToast('❌ ' + result.error);
+                    return;
+                }
+                showToast('✅ Список авто сохранён');
+            } catch (e) {
+                console.warn('Ошибка сохранения авто', e);
+                showToast('❌ Ошибка сохранения авто');
+            }
+        }
+
+        async function loadSchedule() {
+            try {
+                const resp = await fetch(SCRIPT_URL);
+                if (!resp.ok) throw new Error('Ошибка загрузки расписания');
+                const data = await resp.json();
+                if (data.error) {
+                    showToast('❌ ' + data.error);
+                    schedule = {};
+                } else {
+                    schedule = data || {};
+                }
+                renderAll();
+            } catch (e) {
+                console.warn('Не удалось загрузить расписание', e);
+                schedule = {};
+                renderAll();
+                showToast('❌ Ошибка загрузки расписания');
+            }
+        }
+
+        async function saveSchedule() {
+            try {
+                const resp = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(schedule),
+                });
+                const result = await resp.json();
+                if (result.error) {
+                    showToast('❌ ' + result.error);
+                    console.error('Ошибка сервера:', result.error);
+                    return;
+                }
+                showToast('✅ Расписание сохранено');
+            } catch (e) {
+                console.error('Ошибка сети:', e);
+                showToast('❌ Ошибка соединения');
+            }
+        }
+
+        // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
+        function formatDate(year, month, day) {
+            return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+
+        function getStatusForDate(carId, dateStr) {
+            if (!schedule[carId]) return null;
+            return schedule[carId][dateStr] || null;
+        }
+
+        async function setStatusForDate(carId, dateStr, status) {
+            if (!schedule[carId]) schedule[carId] = {};
+            if (status === null || status === 'clear') {
+                delete schedule[carId][dateStr];
+            } else {
+                schedule[carId][dateStr] = status;
+            }
+            await saveSchedule();
+            renderAll();
+            if (currentCarId === carId) renderCalendar();
+            document.getElementById('dayPicker').classList.remove('active');
+            selectedDate = null;
+        }
+
+        // ============ РЕНДЕР СПИСКА АВТО ============
+        function renderCars() {
+            const list = document.getElementById('carList');
+            if (cars.length === 0) {
+                list.innerHTML = `<div class="empty-msg">🚫 Нет автомобилей.<br>Добавьте первый!</div>`;
+                return;
+            }
+            const today = new Date();
+            const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
+
+            list.innerHTML = '';
+            cars.forEach(car => {
+                const status = getStatusForDate(car.id, todayStr);
+                const displayStatus = status ? status.charAt(0).toUpperCase() + status.slice(1) : '—';
+                const badgeClass = status ? status : '';
+
+                const item = document.createElement('div');
+                item.className = 'car-item';
+                item.innerHTML = `
+                        <div class="car-info">
+                            <span class="car-name">${car.name}</span>
+                            <span class="car-number">${car.number}</span>
+                        </div>
+                        <span class="status-badge ${badgeClass}">${displayStatus}</span>
+                    `;
+                item.addEventListener('click', () => openCalendar(car.id));
+                list.appendChild(item);
+            });
+        }
+
+        // ============ КАЛЕНДАРЬ ============
+        let currentCarId = null;
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        let selectedDate = null;
+
+        function renderCalendar() {
+            if (currentCarId === null) return;
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь',
+                'Ноябрь', 'Декабрь'
+            ];
+            document.getElementById('monthLabel').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startDayOfWeek = firstDay.getDay();
+            const offset = (startDayOfWeek === 0) ? 6 : startDayOfWeek - 1;
+
+            let html = '';
+            const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            for (let i = 0; i < 7; i++) html += `<div class="day-name">${dayNames[i]}</div>`;
+            for (let i = 0; i < offset; i++) html += `<div class="day-cell empty"></div>`;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = formatDate(currentYear, currentMonth, day);
+                const status = getStatusForDate(currentCarId, dateStr);
+                let statusClass = '',
+                    dotHtml = '';
+                if (status) {
+                    statusClass = `status-${status}`;
+                    dotHtml = `<span class="status-dot"></span>`;
+                }
+                html += `<div class="day-cell ${statusClass}" data-date="${dateStr}">
+                        <span class="day-number">${day}</span> ${dotHtml}
+                    </div>`;
+            }
+            document.getElementById('calendarGrid').innerHTML = html;
+
+            document.querySelectorAll('.day-cell:not(.empty)').forEach(cell => {
+                cell.addEventListener('click', function() {
+                    const dateStr = this.dataset.date;
+                    if (dateStr) showDayPicker(dateStr);
+                });
+            });
+        }
+
+        function showDayPicker(dateStr) {
+            selectedDate = dateStr;
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            document.getElementById('pickerTitle').textContent =
+                `Выберите статус для ${dateObj.toLocaleDateString('ru-RU', {day:'numeric', month:'long'})}`;
+            document.getElementById('dayPicker').classList.add('active');
+            document.getElementById('dayPicker').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function openCalendar(carId) {
+            currentCarId = carId;
+            const car = cars.find(c => c.id === carId);
+            if (!car) return;
+            document.getElementById('modalCarTitle').textContent = `${car.name} (${car.number})`;
+            const now = new Date();
+            currentYear = now.getFullYear();
+            currentMonth = now.getMonth();
+            document.getElementById('dayPicker').classList.remove('active');
+            selectedDate = null;
+            renderCalendar();
+            document.getElementById('calendarModal').classList.add('active');
+        }
+
+        function closeCalendar() {
+            document.getElementById('calendarModal').classList.remove('active');
+            currentCarId = null;
+            document.getElementById('dayPicker').classList.remove('active');
+            selectedDate = null;
+        }
+
+        // ============ ОТЧЁТ ============
+        function generateReport() {
+            const monthValue = document.getElementById('reportMonth').value;
+            if (!monthValue) {
+                document.getElementById('reportResult').innerHTML = '<div class="report-empty">Выберите месяц.</div>';
+                return;
+            }
+            const [year, month] = monthValue.split('-').map(Number);
+            const monthIndex = month - 1;
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+            const stats = cars.map(car => {
+                let repair = 0,
+                    idle = 0,
+                    off = 0;
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = formatDate(year, monthIndex, day);
+                    const status = getStatusForDate(car.id, dateStr);
+                    if (status === 'ремонт') repair++;
+                    else if (status === 'простой') idle++;
+                    else if (status === 'выходной') off++;
+                }
+                return { car, repair, idle, off };
+            });
+
+            let totalRepair = 0,
+                totalIdle = 0,
+                totalOff = 0;
+            stats.forEach(s => { totalRepair += s.repair;
+                totalIdle += s.idle;
+                totalOff += s.off; });
+
+            let html = `<div class="report-table-wrap"><table class="report-table"><thead><tr>
+                        <th>Автомобиль</th><th class="num">🔧 Ремонт</th><th class="num">⏸ Простой</th><th class="num">📅 Выходной</th>
+                    </tr></thead><tbody>`;
+            if (stats.length === 0) {
+                html += `<tr><td colspan="4" class="report-empty">Нет автомобилей</td></tr>`;
+            } else {
+                stats.forEach(s => {
+                    html += `<tr><td class="car-name-cell">${s.car.name} (${s.car.number})</td>
+                            <td class="num ремонт">${s.repair}</td><td class="num простой">${s.idle}</td><td class="num выходной">${s.off}</td></tr>`;
+                });
+                html += `<tr class="total-row"><td><strong>ИТОГО</strong></td>
+                        <td class="num ремонт"><strong>${totalRepair}</strong></td>
+                        <td class="num простой"><strong>${totalIdle}</strong></td>
+                        <td class="num выходной"><strong>${totalOff}</strong></td></tr>`;
+            }
+            html += `</tbody></table></div>`;
+            document.getElementById('reportResult').innerHTML = html;
+        }
+
+        // ============ УПРАВЛЕНИЕ АВТОМОБИЛЯМИ ============
+        async function addCar(name, number) {
+            const maxId = cars.reduce((max, c) => Math.max(max, c.id), 0);
+            const newCar = { id: maxId + 1, name, number };
+            cars.push(newCar);
+            await saveCars();
+            renderAll();
+            showToast(`✅ Автомобиль "${name}" добавлен`);
+        }
+
+        // ============ TOAST ============
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        // ============ ОБЩАЯ ПЕРИСОВКА ============
+        function renderAll() {
+            renderCars();
+            if (document.getElementById('calendarModal').classList.contains('active') && currentCarId !== null) {
+                renderCalendar();
+            }
+        }
+
+        // ============ ИНИЦИАЛИЗАЦИЯ ============
+        async function init() {
+            await loadCars();
+            await loadSchedule();
+
+            const now = new Date();
+            document.getElementById('reportMonth').value =
+                `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            // Добавление авто
+            document.getElementById('addCarBtn').addEventListener('click', () => {
+                document.getElementById('addCarModal').classList.add('active');
+                document.getElementById('newCarName').value = '';
+                document.getElementById('newCarNumber').value = '';
+            });
+            document.getElementById('addCarClose').addEventListener('click', () =>
+                document.getElementById('addCarModal').classList.remove('active'));
+            document.getElementById('addCarModal').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) document.getElementById('addCarModal').classList.remove('active');
+            });
+            document.getElementById('saveCarBtn').addEventListener('click', async () => {
+                const name = document.getElementById('newCarName').value.trim();
+                const number = document.getElementById('newCarNumber').value.trim();
+                if (!name) { showToast('⚠️ Введите название'); return; }
+                if (!number) { showToast('⚠️ Введите номер'); return; }
+                await addCar(name, number);
+                document.getElementById('addCarModal').classList.remove('active');
+            });
+
+            // Отчёт
+            document.getElementById('openReportBtn').addEventListener('click', () => {
+                document.getElementById('reportModal').classList.add('active');
+                generateReport();
+            });
+            document.getElementById('reportClose').addEventListener('click', () =>
+                document.getElementById('reportModal').classList.remove('active'));
+            document.getElementById('reportModal').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) document.getElementById('reportModal').classList.remove('active');
+            });
+            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+
+            // Календарь
+            document.getElementById('modalClose').addEventListener('click', closeCalendar);
+            document.getElementById('modalCloseBottom').addEventListener('click', closeCalendar);
+            document.getElementById('calendarModal').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) closeCalendar();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeCalendar();
+                    document.getElementById('reportModal').classList.remove('active');
+                    document.getElementById('addCarModal').classList.remove('active');
+                }
+            });
+
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) { currentMonth = 11;
+                    currentYear--; }
+                renderCalendar();
+                document.getElementById('dayPicker').classList.remove('active');
+                selectedDate = null;
+            });
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) { currentMonth = 0;
+                    currentYear++; }
+                renderCalendar();
+                document.getElementById('dayPicker').classList.remove('active');
+                selectedDate = null;
+            });
+
+            document.querySelectorAll('.picker-buttons button').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    if (currentCarId === null || !selectedDate) return;
+                    const status = this.dataset.status;
+                    await setStatusForDate(currentCarId, selectedDate, status === 'clear' ? null : status);
+                });
+            });
+
+            renderAll();
+        }
+
+        init();
+    </script>
+</body>
+</html>
